@@ -102,7 +102,7 @@ export default function ChatPage() {
         handleInputChange={handleInputChange}
         handleSubmit={handleSubmit}
         isGenerating={isGenerating}
-        className="min-h-[80vh]"
+        className="min-h-[80vh] p-8"
       />
     </div>
   );

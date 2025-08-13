@@ -39,6 +39,14 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getUserChats } from "@/lib/firebase/chatService";
 import { Chat } from "@/types/chat";
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+} from "firebase/firestore";
+import { db } from "../../firebase/firebaseConfig";
 
 // Menu items.
 const items = [
@@ -67,15 +75,45 @@ export function AppSidebar() {
 
   useEffect(() => {
     if (user?.uid) {
-      console.log("Loading chats for user:", user.uid);
-      getUserChats(user.uid)
-        .then((chats) => {
-          console.log("Loaded chats:", chats);
+      console.log("Setting up real-time listener for user:", user.uid);
+
+      const q = query(
+        collection(db, "chats"),
+        where("userId", "==", user.uid),
+        orderBy("updatedAt", "desc")
+      );
+
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const chats = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            const toDate = (v: any) =>
+              v && typeof v.toDate === "function" ? v.toDate() : new Date();
+
+            return {
+              id: doc.id,
+              title: data.title,
+              userId: data.userId,
+              createdAt: toDate(data.createdAt),
+              updatedAt: toDate(data.updatedAt),
+              messageCount: data.messageCount || 0,
+            };
+          });
+
+          console.log("Real-time chat update:", chats);
           setChats(chats);
-        })
-        .catch((error) => {
-          console.error("Error loading chats:", error);
-        });
+        },
+        (error) => {
+          console.error("Error in real-time listener:", error);
+        }
+      );
+
+      // Cleanup function to unsubscribe when component unmounts or user changes
+      return () => {
+        console.log("Cleaning up real-time listener");
+        unsubscribe();
+      };
     }
   }, [user?.uid]);
 

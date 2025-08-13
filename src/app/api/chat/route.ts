@@ -4,22 +4,28 @@ import { NextRequest } from "next/server";
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL!;
 
 export async function POST(req: NextRequest) {
-  const { messages } = await req.json();
+  const { messages, chatId, userId } = await req.json();
 
   // Get the last user message
   const last = [...messages].filter((m: any) => m.role === "user").pop();
   if (!last) return new Response("No user message", { status: 400 });
 
-  // Get session and user id
-  const userId = "user-123"; // TODO: get user id from session
-  const messageId = `msg_${Date.now()}`;
-  const conversationId = `conv_${userId}_${Date.now()}`;
+  // Create n8n message format with app identification
+  const n8nMessage = {
+    app_source: "alan-ai-webapp",
+    user_id: userId || "user-123",
+    chat_id: chatId || `chat_${Date.now()}`,
+    conversation_id: chatId || `conv_${userId}_${Date.now()}`,
+    message: last.content,
+    timestamp: Date.now().toString(),
+    message_id: `msg_${Date.now()}`,
+  };
 
   // Send the message to n8n
   const r = await fetch(N8N_WEBHOOK_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: last.content }),
+    body: JSON.stringify(n8nMessage),
   });
 
   // Accept either JSON or text from n8n

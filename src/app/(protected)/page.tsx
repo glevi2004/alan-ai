@@ -68,21 +68,15 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="flex-col items-center justify-center max-w-6xl mx-auto">
-        <div className="border rounded-md p-4">
-          <div className="flex-1">
-            <Chat
-              messages={[]}
-              input={input}
-              handleInputChange={handleInputChange}
-              handleSubmit={handleSubmit}
-              isGenerating={isGenerating}
-              className="min-h-[80vh]"
-            />
-          </div>
-        </div>
-      </main>
+    <div className="flex-1">
+      <Chat
+        messages={[]}
+        input={input}
+        handleInputChange={handleInputChange}
+        handleSubmit={handleSubmit}
+        isGenerating={isGenerating}
+        className="min-h-[80vh] p-8"
+      />
     </div>
   );
 }
