@@ -5,6 +5,11 @@ import { onAuthStateChanged, User } from "firebase/auth";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { auth } from "../../../firebase/firebaseConfig";
+import {
+  createUserProfile,
+  getUserProfile,
+  updateLastLogin,
+} from "@/lib/firebase/userService";
 
 type AuthValue = { user: User | null; loading: boolean };
 const AuthContext = createContext<AuthValue>({ user: null, loading: true });
@@ -27,6 +32,34 @@ export default function AuthProvider({
       setLoading(false);
     });
   }, []);
+
+  // Ensure Firestore user profile exists and update last login
+  useEffect(() => {
+    if (!user) return;
+
+    const syncUserProfile = async () => {
+      try {
+        const existing = await getUserProfile(user.uid);
+
+        if (!existing) {
+          await createUserProfile({
+            uid: user.uid,
+            email: user.email ?? "",
+            displayName:
+              user.displayName ??
+              (user.email ? user.email.split("@")[0] : "User"),
+            photoURL: user.photoURL ?? "",
+          });
+        } else {
+          await updateLastLogin(user.uid);
+        }
+      } catch (error) {
+        console.error("Failed to sync user profile", error);
+      }
+    };
+
+    void syncUserProfile();
+  }, [user]);
 
   // Handle redirects based on auth state
   useEffect(() => {

@@ -15,3 +15,8 @@ export interface ChatMessage {
   content: string;
   createdAt: Date;
 }
+
+export interface CreateChatData {
+  title: string;
+  userId: string;
+}

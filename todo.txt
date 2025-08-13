@@ -1,0 +1,6 @@
+Sidebar
+- add settings button
+- chat creation / deletion / edit and state management
+
+n8n
+- 

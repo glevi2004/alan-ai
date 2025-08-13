@@ -1,22 +1,9 @@
 "use client";
 
-import { signOut } from "firebase/auth";
-import { auth } from "../../../firebase/firebaseConfig";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 
 export default function Navbar() {
   const router = useRouter();
-
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      router.push("/login");
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
 
   return (
     <nav className="bg-background border-b border-border px-4 py-4">
@@ -30,17 +17,6 @@ export default function Navbar() {
             Alan AI
           </span>
         </div>
-
-        {/* Logout Button */}
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-2"
-        >
-          <LogOut className="w-4 h-4" />
-          Logout
-        </Button>
       </div>
     </nav>
   );

@@ -1,8 +1,21 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react";
+"use client";
+
+import {
+  Calendar,
+  ChevronUp,
+  CreditCard,
+  Home,
+  Inbox,
+  LogOut,
+  Search,
+  Settings,
+  User2,
+} from "lucide-react";
 
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -10,7 +23,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase/firebaseConfig";
+import { useRouter } from "next/navigation";
 // Menu items.
 const items = [
   {
@@ -41,6 +63,17 @@ const items = [
 ];
 
 export function AppSidebar() {
+  const { user } = useAuth();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.push("/login");
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
   return (
     <Sidebar>
       <SidebarContent>
@@ -61,6 +94,51 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarFooter className="mt-auto">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <SidebarMenuButton size="lg">
+                    {user?.photoURL ? (
+                      <img
+                        src={user.photoURL}
+                        alt="User avatar"
+                        className="h-8 w-8 rounded-full object-cover shrink-0"
+                      />
+                    ) : (
+                      <User2 />
+                    )}
+                    <span>{user?.displayName ?? user?.email ?? "User"}</span>
+                    <ChevronUp className="ml-auto" />
+                  </SidebarMenuButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="top"
+                  align="start"
+                  className="w-(--radix-popper-anchor-width) p-0"
+                >
+                  <DropdownMenuItem className="w-full">
+                    <User2 />
+                    <span>Account</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="w-full">
+                    <CreditCard />
+                    <span>Billing</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="w-full"
+                    data-variant="destructive"
+                    onSelect={handleLogout}
+                  >
+                    <LogOut />
+                    <span>Sign out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
       </SidebarContent>
     </Sidebar>
   );
