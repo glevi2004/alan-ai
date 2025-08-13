@@ -2,6 +2,7 @@
 import {
   doc,
   setDoc,
+  getDoc,
   getDocs,
   collection,
   query,
@@ -43,6 +44,51 @@ export async function getUserChats(userId: string) {
       createdAt: toDate(data.createdAt),
       updatedAt: toDate(data.updatedAt),
       messageCount: data.messageCount || 0,
+    };
+  });
+}
+
+// Get a specific chat by ID
+export async function getChat(chatId: string) {
+  const chatRef = doc(db, "chats", chatId);
+  const snapshot = await getDoc(chatRef);
+
+  if (!snapshot.exists()) return null;
+
+  const data = snapshot.data();
+  const toDate = (v: any) =>
+    v && typeof v.toDate === "function" ? v.toDate() : new Date();
+
+  return {
+    id: snapshot.id,
+    title: data.title,
+    userId: data.userId,
+    createdAt: toDate(data.createdAt),
+    updatedAt: toDate(data.updatedAt),
+    messageCount: data.messageCount || 0,
+  };
+}
+
+// Get all messages for a chat
+export async function getChatMessages(chatId: string) {
+  const q = query(
+    collection(db, "messages"),
+    where("chatId", "==", chatId),
+    orderBy("createdAt", "asc")
+  );
+
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+    const toDate = (v: any) =>
+      v && typeof v.toDate === "function" ? v.toDate() : new Date();
+
+    return {
+      id: doc.id,
+      chatId: data.chatId,
+      role: data.role,
+      content: data.content,
+      createdAt: toDate(data.createdAt),
     };
   });
 }
