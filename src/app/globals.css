@@ -138,3 +138,13 @@
 .animate-typing-dot-bounce {
   animation: typing-dot-bounce 1.4s ease-in-out infinite both;
 }
+
+/* Chat item hover effects */
+.chat-item:hover .chat-dots {
+  opacity: 1;
+}
+
+/* Keep dots visible when dropdown is open */
+.chat-item:has([data-state="open"]) .chat-dots {
+  opacity: 1;
+}

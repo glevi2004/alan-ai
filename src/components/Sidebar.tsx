@@ -8,6 +8,7 @@ import {
   Inbox,
   LogOut,
   MessageCircle,
+  MoreHorizontal,
   Plus,
   Search,
   Settings,
@@ -158,11 +159,33 @@ export function AppSidebar() {
                 </SidebarMenuButton>
               </SidebarMenuItem>
               {chats.map((chat) => (
-                <SidebarMenuItem key={chat.id}>
+                <SidebarMenuItem key={chat.id} className="chat-item">
                   <SidebarMenuButton asChild>
-                    <Link href={`/chat/${chat.id}`}>
+                    <Link href={`/chat/${chat.id}`} className="relative">
                       <MessageCircle />
                       <span>{chat.title}</span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 transition-opacity p-1 hover:bg-muted rounded chat-dots"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          side="right"
+                          align="start"
+                          className="w-48"
+                        >
+                          <DropdownMenuItem>
+                            <span>Button1</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <span>Button2</span>
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
