@@ -43,14 +43,25 @@ export default function ChatPage() {
 
     if (!input.trim() || !user?.uid || !chatId) return;
 
+    const userMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      chatId: chatId,
+      role: "user",
+      content: input.trim(),
+      createdAt: new Date(),
+    };
+
+    // 1. Add user message to UI immediately (optimistic update)
+    setMessages((prev) => [...prev, userMessage]);
+
+    // 3. Clear input and set generating state
+    const currentInput = input;
+    setInput("");
+    setIsGenerating(true);
+
     try {
-      setIsGenerating(true);
-
-      // Save user message
-      await saveMessage(chatId, "user", input.trim());
-
-      const currentInput = input;
-      setInput("");
+      // Save user message to Firestore
+      await saveMessage(chatId, "user", currentInput);
 
       // Send to API
       const response = await fetch("/api/chat", {
@@ -69,14 +80,21 @@ export default function ChatPage() {
 
       const assistantResponse = await response.text();
 
-      // Save assistant message
+      // Save assistant message to Firestore
       await saveMessage(chatId, "assistant", assistantResponse);
 
-      // Reload messages to show the new ones
-      const newMessages = await getChatMessages(chatId);
-      setMessages(newMessages);
+      // 4. Add assistant response to messages
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now()}`,
+        chatId: chatId,
+        role: "assistant",
+        content: assistantResponse,
+        createdAt: new Date(),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
       console.error("Error sending message:", error);
+      // 5. Handle error - no need to remove anything since we don't add loading message
     } finally {
       setIsGenerating(false);
     }

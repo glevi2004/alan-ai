@@ -151,7 +151,7 @@ export function AppSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <Link href="/">
+                  <Link href="/?new=true">
                     <Plus />
                     <span>New Chat</span>
                   </Link>
