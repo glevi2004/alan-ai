@@ -8,6 +8,7 @@ import {
   Inbox,
   LogOut,
   MessageCircle,
+  Plus,
   Search,
   Settings,
   User2,
@@ -110,6 +111,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>Chats</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/">
+                    <Plus />
+                    <span>New Chat</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               {chats.map((chat) => (
                 <SidebarMenuItem key={chat.id}>
                   <SidebarMenuButton asChild>

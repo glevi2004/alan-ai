@@ -4,7 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Chat } from "@/components/ui/chat";
-import { getChat, getChatMessages } from "@/lib/firebase/chatService";
+import {
+  getChat,
+  getChatMessages,
+  saveMessage,
+} from "@/lib/firebase/chatService";
 import { Chat as ChatType, ChatMessage } from "@/types/chat";
 
 export default function ChatPage() {
@@ -36,7 +40,46 @@ export default function ChatPage() {
 
   const handleSubmit = async (event?: { preventDefault?: () => void }) => {
     event?.preventDefault?.();
-    // Your chat submission logic here
+
+    if (!input.trim() || !user?.uid || !chatId) return;
+
+    try {
+      setIsGenerating(true);
+
+      // Save user message
+      await saveMessage(chatId, "user", input.trim());
+
+      const currentInput = input;
+      setInput("");
+
+      // Send to API
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, { role: "user", content: currentInput }],
+          chatId,
+          userId: user.uid,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get response");
+      }
+
+      const assistantResponse = await response.text();
+
+      // Save assistant message
+      await saveMessage(chatId, "assistant", assistantResponse);
+
+      // Reload messages to show the new ones
+      const newMessages = await getChatMessages(chatId);
+      setMessages(newMessages);
+    } catch (error) {
+      console.error("Error sending message:", error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
