@@ -7,6 +7,7 @@ import {
   Home,
   Inbox,
   LogOut,
+  MessageCircle,
   Search,
   Settings,
   User2,
@@ -33,38 +34,49 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { signOut } from "firebase/auth";
 import { auth } from "../../firebase/firebaseConfig";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { getUserChats } from "@/lib/firebase/chatService";
+import { Chat } from "@/types/chat";
+
 // Menu items.
 const items = [
   {
     title: "Home",
-    url: "#",
+    url: "/",
     icon: Home,
-  },
-  {
-    title: "Inbox",
-    url: "#",
-    icon: Inbox,
-  },
-  {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
   },
   {
     title: "Search",
     url: "#",
     icon: Search,
   },
-  {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
-  },
 ];
 
 export function AppSidebar() {
   const { user } = useAuth();
   const router = useRouter();
+  const [chats, setChats] = useState<Chat[]>([]);
+
+  // useEffect(() => {
+  //   if (user?.uid) {
+  //     getUserChats(user.uid).then(setChats);
+  //   }
+  // }, [user?.uid]);
+
+  useEffect(() => {
+    if (user?.uid) {
+      console.log("Loading chats for user:", user.uid);
+      getUserChats(user.uid)
+        .then((chats) => {
+          console.log("Loaded chats:", chats);
+          setChats(chats);
+        })
+        .catch((error) => {
+          console.error("Error loading chats:", error);
+        });
+    }
+  }, [user?.uid]);
 
   const handleLogout = async () => {
     try {
@@ -88,6 +100,23 @@ export function AppSidebar() {
                       <item.icon />
                       <span>{item.title}</span>
                     </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+        <SidebarGroup>
+          <SidebarGroupLabel>Chats</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {chats.map((chat) => (
+                <SidebarMenuItem key={chat.id}>
+                  <SidebarMenuButton asChild>
+                    <Link href={`/chat/${chat.id}`}>
+                      <MessageCircle />
+                      <span>{chat.title}</span>
+                    </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -118,13 +147,17 @@ export function AppSidebar() {
                   align="start"
                   className="w-(--radix-popper-anchor-width) p-0"
                 >
-                  <DropdownMenuItem className="w-full">
-                    <User2 />
-                    <span>Account</span>
+                  <DropdownMenuItem asChild className="w-full">
+                    <Link href="/settings">
+                      <Settings />
+                      <span>Settings</span>
+                    </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem className="w-full">
-                    <CreditCard />
-                    <span>Billing</span>
+                  <DropdownMenuItem asChild className="w-full">
+                    <Link href="/billing">
+                      <CreditCard />
+                      <span>Billing</span>
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     className="w-full"
