@@ -54,6 +54,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 
 // Menu items.
 const items = [
@@ -75,6 +76,11 @@ export function AppSidebar() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   // useEffect(() => {
   //   if (user?.uid) {
@@ -179,24 +185,35 @@ export function AppSidebar() {
     }
   };
 
-  const handleDeleteChat = async (chatId: string, chatTitle: string) => {
-    const confirmed = confirm(
-      `Are you sure you want to delete "${chatTitle}"? This action cannot be undone.`
-    );
-    if (confirmed) {
-      try {
-        await deleteChat(chatId);
-        // The real-time listener will automatically update the UI
-        // If we're currently on this chat, redirect to home
-        if (window.location.pathname === `/chat/${chatId}`) {
-          router.push("/");
-        }
-      } catch (error) {
-        console.error("Error deleting chat:", error);
-        alert("Failed to delete chat. Please try again.");
+  const handleDeleteChat = (chatId: string, chatTitle: string) => {
+    setChatToDelete({ id: chatId, title: chatTitle });
+    setDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!chatToDelete) return;
+
+    try {
+      await deleteChat(chatToDelete.id);
+      // The real-time listener will automatically update the UI
+      // If we're currently on this chat, redirect to home
+      if (window.location.pathname === `/chat/${chatToDelete.id}`) {
+        router.push("/");
       }
+    } catch (error) {
+      console.error("Error deleting chat:", error);
+      alert("Failed to delete chat. Please try again.");
+    } finally {
+      setDeleteModalOpen(false);
+      setChatToDelete(null);
     }
   };
+
+  const handleCloseDeleteModal = () => {
+    setDeleteModalOpen(false);
+    setChatToDelete(null);
+  };
+
   return (
     <Sidebar>
       <SidebarContent>
@@ -341,6 +358,13 @@ export function AppSidebar() {
           </SidebarMenu>
         </SidebarFooter>
       </SidebarContent>
+
+      <DeleteConfirmationModal
+        isOpen={deleteModalOpen}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDelete}
+        chatTitle={chatToDelete?.title || ""}
+      />
     </Sidebar>
   );
 }
