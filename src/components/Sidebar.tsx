@@ -55,6 +55,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase/firebaseConfig";
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
+import { useSearch } from "@/components/search/SearchProvider";
 
 // Menu items.
 const items = [
@@ -73,6 +74,7 @@ const items = [
 export function AppSidebar() {
   const { user } = useAuth();
   const router = useRouter();
+  const { openSearch } = useSearch();
   const [chats, setChats] = useState<Chat[]>([]);
   const [editingChatId, setEditingChatId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -231,6 +233,15 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={openSearch}>
+                  <Search />
+                  <span>Search</span>
+                  <span className="ml-auto text-xs bg-muted px-1.5 py-0.5 rounded">
+                    ⌘K
+                  </span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

@@ -2,6 +2,7 @@
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Sidebar";
 import Navbar from "@/components/nav/Navbar";
+import { SearchProvider } from "@/components/search/SearchProvider";
 
 export default function ProtectedLayout({
   children,
@@ -9,7 +10,7 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
+    <SearchProvider>
       <div className="mb-6">
         <Navbar />
       </div>
@@ -20,6 +21,6 @@ export default function ProtectedLayout({
           {children}
         </main>
       </SidebarProvider>
-    </>
+    </SearchProvider>
   );
 }
