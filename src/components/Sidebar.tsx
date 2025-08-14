@@ -4,6 +4,7 @@ import {
   Calendar,
   ChevronUp,
   CreditCard,
+  Edit,
   Home,
   Inbox,
   LogOut,
@@ -12,6 +13,7 @@ import {
   Plus,
   Search,
   Settings,
+  Trash2,
   User2,
 } from "lucide-react";
 
@@ -38,7 +40,11 @@ import { auth } from "../../firebase/firebaseConfig";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getUserChats } from "@/lib/firebase/chatService";
+import {
+  getUserChats,
+  updateChatTitle,
+  deleteChat,
+} from "@/lib/firebase/chatService";
 import { Chat } from "@/types/chat";
 import {
   collection,
@@ -67,6 +73,8 @@ export function AppSidebar() {
   const { user } = useAuth();
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
+  const [editingChatId, setEditingChatId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState("");
 
   // useEffect(() => {
   //   if (user?.uid) {
@@ -126,6 +134,69 @@ export function AppSidebar() {
       console.error("Error signing out:", error);
     }
   };
+
+  const handleRenameChat = (chatId: string, currentTitle: string) => {
+    setEditingChatId(chatId);
+    setEditingTitle(currentTitle);
+    // Use setTimeout to ensure the input is rendered before selecting
+    setTimeout(() => {
+      const input = document.querySelector(
+        `input[data-chat-id="${chatId}"]`
+      ) as HTMLInputElement;
+      if (input) {
+        input.select();
+      }
+    }, 0);
+  };
+
+  const handleSaveRename = async (chatId: string) => {
+    const newTitle = editingTitle.trim();
+    if (newTitle && newTitle !== chats.find((c) => c.id === chatId)?.title) {
+      try {
+        await updateChatTitle(chatId, newTitle);
+        // The real-time listener will automatically update the UI
+      } catch (error) {
+        console.error("Error renaming chat:", error);
+        alert("Failed to rename chat. Please try again.");
+      }
+    }
+    setEditingChatId(null);
+    setEditingTitle("");
+  };
+
+  const handleCancelRename = () => {
+    setEditingChatId(null);
+    setEditingTitle("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, chatId: string) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveRename(chatId);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelRename();
+    }
+  };
+
+  const handleDeleteChat = async (chatId: string, chatTitle: string) => {
+    const confirmed = confirm(
+      `Are you sure you want to delete "${chatTitle}"? This action cannot be undone.`
+    );
+    if (confirmed) {
+      try {
+        await deleteChat(chatId);
+        // The real-time listener will automatically update the UI
+        // If we're currently on this chat, redirect to home
+        if (window.location.pathname === `/chat/${chatId}`) {
+          router.push("/");
+        }
+      } catch (error) {
+        console.error("Error deleting chat:", error);
+        alert("Failed to delete chat. Please try again.");
+      }
+    }
+  };
   return (
     <Sidebar>
       <SidebarContent>
@@ -160,34 +231,61 @@ export function AppSidebar() {
               </SidebarMenuItem>
               {chats.map((chat) => (
                 <SidebarMenuItem key={chat.id} className="chat-item">
-                  <SidebarMenuButton asChild>
-                    <Link href={`/chat/${chat.id}`} className="relative">
-                      <MessageCircle />
-                      <span>{chat.title}</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 transition-opacity p-1 hover:bg-muted rounded chat-dots"
-                            onClick={(e) => e.stopPropagation()}
+                  {editingChatId === chat.id ? (
+                    <div className="flex items-center w-full px-3 py-2 bg-accent rounded-md">
+                      <MessageCircle className="mr-2 h-4 w-4" />
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(e, chat.id)}
+                        onBlur={() => handleSaveRename(chat.id)}
+                        className="flex-1 bg-transparent border-none outline-none text-sm"
+                        data-chat-id={chat.id}
+                        autoFocus
+                      />
+                    </div>
+                  ) : (
+                    <SidebarMenuButton asChild>
+                      <Link href={`/chat/${chat.id}`} className="relative">
+                        <MessageCircle />
+                        <span>{chat.title}</span>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="absolute right-0 top-1/2 -translate-y-1/2 opacity-0 transition-opacity p-2 hover:bg-muted rounded chat-dots"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent
+                            side="right"
+                            align="start"
+                            className="w-48"
                           >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent
-                          side="right"
-                          align="start"
-                          className="w-48"
-                        >
-                          <DropdownMenuItem>
-                            <span>Button1</span>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <span>Button2</span>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </Link>
-                  </SidebarMenuButton>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleRenameChat(chat.id, chat.title)
+                              }
+                            >
+                              <Edit className="mr-2 h-4 w-4" />
+                              <span>Rename</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                handleDeleteChat(chat.id, chat.title)
+                              }
+                              data-variant="destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              <span>Delete</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </Link>
+                    </SidebarMenuButton>
+                  )}
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>

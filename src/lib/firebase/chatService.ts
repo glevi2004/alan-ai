@@ -9,6 +9,8 @@ import {
   where,
   orderBy,
   serverTimestamp,
+  deleteDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../../../firebase/firebaseConfig";
 
@@ -106,4 +108,31 @@ export async function saveMessage(
     content,
     createdAt: serverTimestamp(),
   });
+}
+
+// Update chat title
+export async function updateChatTitle(chatId: string, newTitle: string) {
+  const chatRef = doc(db, "chats", chatId);
+  await updateDoc(chatRef, {
+    title: newTitle,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// Delete chat and all its messages
+export async function deleteChat(chatId: string) {
+  // Delete all messages in the chat
+  const messagesQuery = query(
+    collection(db, "messages"),
+    where("chatId", "==", chatId)
+  );
+  const messagesSnapshot = await getDocs(messagesQuery);
+
+  // Delete each message
+  const deletePromises = messagesSnapshot.docs.map((doc) => deleteDoc(doc.ref));
+  await Promise.all(deletePromises);
+
+  // Delete the chat document
+  const chatRef = doc(db, "chats", chatId);
+  await deleteDoc(chatRef);
 }
