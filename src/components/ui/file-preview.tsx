@@ -1,18 +1,19 @@
-"use client"
+"use client";
 
-import React, { useEffect } from "react"
-import { motion } from "framer-motion"
-import { FileIcon, X } from "lucide-react"
+import React, { useEffect } from "react";
+import { motion } from "framer-motion";
+import { FileIcon, X } from "lucide-react";
+import { LoadingSpinner } from "./loading-spinner";
 
 interface FilePreviewProps {
-  file: File
-  onRemove?: () => void
+  file: File;
+  onRemove?: () => void;
 }
 
 export const FilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
   (props, ref) => {
     if (props.file.type.startsWith("image/")) {
-      return <ImageFilePreview {...props} ref={ref} />
+      return <ImageFilePreview {...props} ref={ref} />;
     }
 
     if (
@@ -20,13 +21,13 @@ export const FilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
       props.file.name.endsWith(".txt") ||
       props.file.name.endsWith(".md")
     ) {
-      return <TextFilePreview {...props} ref={ref} />
+      return <TextFilePreview {...props} ref={ref} />;
     }
 
-    return <GenericFilePreview {...props} ref={ref} />
+    return <GenericFilePreview {...props} ref={ref} />;
   }
-)
-FilePreview.displayName = "FilePreview"
+);
+FilePreview.displayName = "FilePreview";
 
 const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
   ({ file, onRemove }, ref) => {
@@ -62,23 +63,23 @@ const ImageFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
           </button>
         ) : null}
       </motion.div>
-    )
+    );
   }
-)
-ImageFilePreview.displayName = "ImageFilePreview"
+);
+ImageFilePreview.displayName = "ImageFilePreview";
 
 const TextFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
   ({ file, onRemove }, ref) => {
-    const [preview, setPreview] = React.useState<string>("")
+    const [preview, setPreview] = React.useState<string>("");
 
     useEffect(() => {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const text = e.target?.result as string
-        setPreview(text.slice(0, 50) + (text.length > 50 ? "..." : ""))
-      }
-      reader.readAsText(file)
-    }, [file])
+        const text = e.target?.result as string;
+        setPreview(text.slice(0, 50) + (text.length > 50 ? "..." : ""));
+      };
+      reader.readAsText(file);
+    }, [file]);
 
     return (
       <motion.div
@@ -91,9 +92,13 @@ const TextFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
       >
         <div className="flex w-full items-center space-x-2">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm border bg-muted p-0.5">
-            <div className="h-full w-full overflow-hidden text-[6px] leading-none text-muted-foreground">
-              {preview || "Loading..."}
-            </div>
+            {preview ? (
+              <div className="h-full w-full overflow-hidden text-[6px] leading-none text-muted-foreground">
+                {preview}
+              </div>
+            ) : (
+              <LoadingSpinner size="sm" />
+            )}
           </div>
           <span className="w-full truncate text-muted-foreground">
             {file.name}
@@ -111,10 +116,10 @@ const TextFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
           </button>
         ) : null}
       </motion.div>
-    )
+    );
   }
-)
-TextFilePreview.displayName = "TextFilePreview"
+);
+TextFilePreview.displayName = "TextFilePreview";
 
 const GenericFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
   ({ file, onRemove }, ref) => {
@@ -147,7 +152,7 @@ const GenericFilePreview = React.forwardRef<HTMLDivElement, FilePreviewProps>(
           </button>
         ) : null}
       </motion.div>
-    )
+    );
   }
-)
-GenericFilePreview.displayName = "GenericFilePreview"
+);
+GenericFilePreview.displayName = "GenericFilePreview";

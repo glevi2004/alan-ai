@@ -10,6 +10,7 @@ import {
   saveMessage,
 } from "@/lib/firebase/chatService";
 import { Chat as ChatType, ChatMessage } from "@/types/chat";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function ChatPage() {
   const params = useParams();
@@ -105,11 +106,24 @@ export default function ChatPage() {
   };
 
   if (loading) {
-    return <div>Loading chat...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <div className="flex flex-col items-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground">Loading chat...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!chat) {
-    return <div>Chat not found</div>;
+    return (
+      <div className="flex items-center justify-center min-h-[80vh]">
+        <div className="flex flex-col items-center space-y-4">
+          <p className="text-muted-foreground">Chat not found</p>
+        </div>
+      </div>
+    );
   }
 
   return (

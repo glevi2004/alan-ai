@@ -10,6 +10,7 @@ import {
   getUserProfile,
   updateLastLogin,
 } from "@/lib/firebase/userService";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 type AuthValue = { user: User | null; loading: boolean };
 const AuthContext = createContext<AuthValue>({ user: null, loading: true });
@@ -74,6 +75,17 @@ export default function AuthProvider({
       }
     }
   }, [user, loading, pathname, router]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background text-foreground">
+        <div className="flex flex-col items-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-muted-foreground">Initializing...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ user, loading }}>
