@@ -56,11 +56,11 @@ export async function POST(request: NextRequest) {
       description: description || "",
       start: {
         dateTime: startDateTime,
-        timeZone: timeZone || "UTC",
+        timeZone: timeZone || "",
       },
       end: {
         dateTime: endDateTime,
-        timeZone: timeZone || "UTC",
+        timeZone: timeZone || "",
       },
       attendees: attendees || [],
     };

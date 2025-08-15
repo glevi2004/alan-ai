@@ -113,11 +113,11 @@ export class GoogleCalendarService {
         description: eventData.description,
         start: {
           dateTime: eventData.start.dateTime,
-          timeZone: eventData.start.timeZone || "UTC",
+          timeZone: eventData.start.timeZone || "",
         },
         end: {
           dateTime: eventData.end.dateTime,
-          timeZone: eventData.end.timeZone || "UTC",
+          timeZone: eventData.end.timeZone || "",
         },
         attendees: eventData.attendees || [],
         reminders: {
