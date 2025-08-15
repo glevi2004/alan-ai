@@ -10,7 +10,43 @@ This guide will help you set up n8n workflows to integrate with your Google Cale
 
 ## 🔗 Available API Endpoints
 
-### 1. **Token Endpoint** - Get Access Token
+### 1. **Chat API** - Send Messages with Timezone
+
+```
+POST https://your-domain.com/api/chat
+```
+
+**Request Body:**
+
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Schedule a meeting for tomorrow at 2pm"
+    }
+  ],
+  "chatId": "chat-123",
+  "userId": "your-firebase-user-id"
+}
+```
+
+**n8n Webhook Payload (sent to your n8n webhook):**
+
+```json
+{
+  "app_source": "alan-ai-webapp",
+  "user_id": "your-firebase-user-id",
+  "chat_id": "chat-123",
+  "conversation_id": "conv_user-123_1703123456789",
+  "message": "Schedule a meeting for tomorrow at 2pm",
+  "timestamp": "1703123456789",
+  "message_id": "msg_1703123456789",
+  "user_timezone": "America/Sao_Paulo"
+}
+```
+
+### 2. **Token Endpoint** - Get Access Token
 
 ```
 GET https://your-domain.com/api/oauth/token?userId=YOUR_USER_ID
@@ -25,7 +61,7 @@ GET https://your-domain.com/api/oauth/token?userId=YOUR_USER_ID
 }
 ```
 
-### 2. **Calendar Events Endpoint** - Create Events
+### 3. **Calendar Events Endpoint** - Create Events
 
 ```
 POST https://your-domain.com/api/calendar/events
@@ -66,7 +102,7 @@ POST https://your-domain.com/api/calendar/events
 }
 ```
 
-### 3. **Calendar Settings Endpoint** - Get User's Calendar Settings
+### 4. **Calendar Settings Endpoint** - Get User's Calendar Settings
 
 ```
 GET https://your-domain.com/api/calendar/settings?userId=YOUR_USER_ID
@@ -85,7 +121,7 @@ GET https://your-domain.com/api/calendar/settings?userId=YOUR_USER_ID
 }
 ```
 
-### 4. **Calendar Events Endpoint** - Get Events
+### 5. **Calendar Events Endpoint** - Get Events
 
 ```
 GET https://your-domain.com/api/calendar/events?userId=YOUR_USER_ID&timeMin=2024-01-01T00:00:00Z&timeMax=2024-01-31T23:59:59Z
@@ -93,45 +129,47 @@ GET https://your-domain.com/api/calendar/events?userId=YOUR_USER_ID&timeMin=2024
 
 ## 🔧 n8n Workflow Setup
 
-### **Workflow 1: Create Calendar Event with User Timezone**
+### **Workflow 1: AI Agent with Timezone-Aware Calendar Integration**
 
-This workflow fetches the user's timezone and uses it for event creation:
+This is the recommended workflow for AI agents that need to create calendar events:
 
-1. **Webhook Trigger**
+1. **Webhook Trigger** - Chat Message
 
    - **Method**: `POST`
-   - **Path**: `/create-event-with-timezone`
+   - **Path**: `/ai-agent-chat`
+   - **Receives**: User message with timezone information
 
-2. **HTTP Request Node** - Get User's Timezone
+2. **AI Processing Node**
 
-   - **Method**: `GET`
-   - **URL**: `https://your-domain.com/api/calendar/settings?userId={{$json.userId}}`
-   - **Authentication**: `None`
+   - Process the user message: `{{ $json.body.message }}`
+   - Access user timezone: `{{ $json.body.user_timezone }}`
+   - Access user ID: `{{ $json.body.user_id }}`
 
-3. **HTTP Request Node** - Create Event
+3. **HTTP Request Node** - Create Calendar Event (when needed)
 
    - **Method**: `POST`
    - **URL**: `https://your-domain.com/api/calendar/events`
-   - **Authentication**: `None`
    - **Content-Type**: `application/json`
    - **Body**:
 
    ```json
    {
-     "userId": "{{$json.userId}}",
-     "summary": "{{$json.summary}}",
-     "description": "{{$json.description}}",
-     "startDateTime": "{{$json.startDateTime}}",
-     "endDateTime": "{{$json.endDateTime}}",
-     "timeZone": "{{$node['Get User Timezone'].json.settings.timeZone}}",
-     "attendees": {{$json.attendees}}
+     "userId": "{{ $json.body.user_id }}",
+     "summary": "Event Title",
+     "description": "Event description",
+     "startDateTime": "2024-01-15T10:00:00-07:00",
+     "endDateTime": "2024-01-15T11:00:00-07:00",
+     "timeZone": "{{ $json.body.user_timezone }}",
+     "attendees": []
    }
    ```
 
 4. **Response Node**
-   - Return the event creation result with user's timezone
+   - Return AI response to user
 
-### **Workflow 2: Create Calendar Event (Simple)**
+### **Workflow 2: Direct Calendar Event Creation**
+
+For direct calendar event creation without AI processing:
 
 1. **Webhook Trigger**
 
@@ -142,26 +180,27 @@ This workflow fetches the user's timezone and uses it for event creation:
 
    - **Method**: `POST`
    - **URL**: `https://your-domain.com/api/calendar/events`
-   - **Authentication**: `None`
    - **Content-Type**: `application/json`
    - **Body**:
 
    ```json
    {
-     "userId": "{{$json.userId}}",
-     "summary": "{{$json.summary}}",
-     "description": "{{$json.description}}",
-     "startDateTime": "{{$json.startDateTime}}",
-     "endDateTime": "{{$json.endDateTime}}",
-     "timeZone": "{{$json.timeZone}}",
-     "attendees": {{$json.attendees}}
+     "userId": "{{ $json.userId }}",
+     "summary": "{{ $json.summary }}",
+     "description": "{{ $json.description }}",
+     "startDateTime": "{{ $json.startDateTime }}",
+     "endDateTime": "{{ $json.endDateTime }}",
+     "timeZone": "{{ $json.timeZone }}",
+     "attendees": {{ $json.attendees }}
    }
    ```
 
 3. **Response Node**
    - Return the event creation result
 
-### **Workflow 2: Create Calendar Event (Advanced with Token Refresh)**
+### **Workflow 3: Advanced with Token Refresh**
+
+For workflows that need direct Google Calendar API access:
 
 1. **Webhook Trigger**
 
@@ -171,8 +210,7 @@ This workflow fetches the user's timezone and uses it for event creation:
 2. **HTTP Request Node** - Get Access Token
 
    - **Method**: `GET`
-   - **URL**: `https://your-domain.com/api/oauth/token?userId={{$json.userId}}`
-   - **Authentication**: `None`
+   - **URL**: `https://your-domain.com/api/oauth/token?userId={{ $json.userId }}`
 
 3. **HTTP Request Node** - Create Event via Google API
 
@@ -180,23 +218,23 @@ This workflow fetches the user's timezone and uses it for event creation:
    - **URL**: `https://www.googleapis.com/calendar/v3/calendars/primary/events`
    - **Authentication**: `Header Auth`
    - **Header Name**: `Authorization`
-   - **Header Value**: `Bearer {{$json.access_token}}`
+   - **Header Value**: `Bearer {{ $json.access_token }}`
    - **Content-Type**: `application/json`
    - **Body**:
 
    ```json
    {
-     "summary": "{{$json.summary}}",
-     "description": "{{$json.description}}",
+     "summary": "{{ $json.summary }}",
+     "description": "{{ $json.description }}",
      "start": {
-       "dateTime": "{{$json.startDateTime}}",
-       "timeZone": "{{$json.timeZone}}"
+       "dateTime": "{{ $json.startDateTime }}",
+       "timeZone": "{{ $json.timeZone }}"
      },
      "end": {
-       "dateTime": "{{$json.endDateTime}}",
-       "timeZone": "{{$json.timeZone}}"
+       "dateTime": "{{ $json.endDateTime }}",
+       "timeZone": "{{ $json.timeZone }}"
      },
-     "attendees": {{$json.attendees}},
+     "attendees": {{ $json.attendees }},
      "reminders": {
        "useDefault": false,
        "overrides": [
@@ -210,7 +248,110 @@ This workflow fetches the user's timezone and uses it for event creation:
 4. **Response Node**
    - Return the event creation result
 
+## 🤖 AI Agent Integration
+
+### **User Timezone in Chat Messages**
+
+The user's timezone is automatically included in every chat message sent to n8n, allowing your AI agent to provide timezone-aware responses:
+
+#### **Chat Message Format**
+
+When a user sends a message through the chat interface, the following data is sent to n8n:
+
+```json
+{
+  "app_source": "alan-ai-webapp",
+  "user_id": "user-firebase-id",
+  "chat_id": "chat-123",
+  "conversation_id": "conv_user-123_1703123456789",
+  "message": "Schedule a meeting for tomorrow at 2pm",
+  "timestamp": "1703123456789",
+  "message_id": "msg_1703123456789",
+  "user_timezone": "America/Sao_Paulo"
+}
+```
+
+#### **AI Agent Prompt for Calendar Event Creation**
+
+````
+You are talking to the user with userId: {{ $json.body.user_id }}
+Date and Time: {{ $now.toISO() }}
+And the Timezone is: {{ $json.body.user_timezone }}
+
+The Calendar tool expects the following format example but define the content based on the user request:
+
+**CRITICAL REQUIREMENTS:**
+1. **userId**: Use `{{ $json.body.user_id }}` from the incoming message
+2. **timeZone**: Use `{{ $json.body.user_timezone }}` from the incoming message
+3. **startDateTime** and **endDateTime**: Must be in ISO 8601 format with timezone offset
+4. **DO NOT** use nested objects for start/end times - use flat fields
+5. **DO NOT** send as an array - send as a single JSON object
+
+**Example for a meeting tomorrow at 2pm:**
+```json
+{
+  "userId": "{{ $json.body.user_id }}",
+  "summary": "Team Meeting",
+  "description": "Weekly team sync",
+  "startDateTime": "2024-01-16T14:00:00-03:00",
+  "endDateTime": "2024-01-16T15:00:00-03:00",
+  "timeZone": "{{ $json.body.user_timezone }}",
+  "attendees": []
+}
+````
+
+**IMPORTANT:** The API expects flat fields (startDateTime, endDateTime) NOT nested objects (start.dateTime, end.dateTime). Always use the user's timezone from `{{ $json.body.user_timezone }}` for proper timezone handling.
+
+Message: {{ $json.body.message }}
+
+````
+
+#### **Using Timezone in AI Agent Workflows**
+
+Your AI agent can now access the user's timezone directly from the incoming message:
+
+1. **Webhook Trigger** - Chat Message
+   - Receives user message with timezone information
+
+2. **AI Processing Node**
+   - Use `{{ $json.body.user_timezone }}` to access the user's timezone
+   - Provide timezone-aware responses and suggestions
+
+3. **Calendar Event Creation**
+   - Use the timezone when creating calendar events
+   - Ensure events are scheduled in the user's local time
+
+#### **Example: Timezone-Aware Meeting Scheduling**
+
+When a user says "Schedule a meeting for tomorrow at 2pm", your AI agent can:
+
+1. **Parse the request** using the user's timezone context
+2. **Convert times** to the correct timezone for Google Calendar
+3. **Create events** with proper timezone information
+4. **Provide responses** in the user's local time
+
+#### **Benefits for AI Agents:**
+
+- **Context Awareness**: AI can understand the user's actual timezone
+- **Better Scheduling**: AI can suggest times in the user's local timezone
+- **Accurate Responses**: AI can provide timezone-aware responses
+- **User Experience**: Events are created in the correct timezone automatically
+
 ## 📝 Example Webhook Data
+
+### **Chat API Request:**
+```json
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Schedule a meeting for tomorrow at 2pm"
+    }
+  ],
+  "chatId": "test-chat-123",
+  "userId": "your-firebase-user-id"
+}
+````
 
 ### **Create Event Request:**
 
@@ -237,43 +378,7 @@ GET https://your-domain.com/api/calendar/events?userId=your-firebase-user-id&tim
 
 ## 🔍 Testing Your Integration
 
-### **1. Test Token Endpoint**
-
-```bash
-curl "https://your-domain.com/api/oauth/token?userId=YOUR_USER_ID"
-```
-
-### **2. Test Event Creation**
-
-```bash
-curl -X POST "https://your-domain.com/api/calendar/events" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": "YOUR_USER_ID",
-    "summary": "Test Meeting",
-    "description": "Testing n8n integration",
-    "startDateTime": "2024-01-15T10:00:00-07:00",
-    "endDateTime": "2024-01-15T11:00:00-07:00",
-    "timeZone": "America/Los_Angeles"
-  }'
-```
-
-### **3. Test n8n Webhook**
-
-```bash
-curl -X POST "https://your-n8n-instance.com/webhook/create-event" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "userId": "YOUR_USER_ID",
-    "summary": "n8n Test Meeting",
-    "description": "Testing n8n webhook",
-    "startDateTime": "2024-01-15T14:00:00-07:00",
-    "endDateTime": "2024-01-15T15:00:00-07:00",
-    "timeZone": "America/Los_Angeles"
-  }'
-```
-
-### **4. Test Chat API with Timezone**
+### **1. Test Chat API with Timezone**
 
 ```bash
 curl -X POST "https://your-domain.com/api/chat" \
@@ -303,6 +408,48 @@ curl -X POST "https://your-domain.com/api/chat" \
   "message_id": "msg_1703123456789",
   "user_timezone": "America/Sao_Paulo"
 }
+```
+
+### **2. Test Token Endpoint**
+
+```bash
+curl "https://your-domain.com/api/oauth/token?userId=YOUR_USER_ID"
+```
+
+### **3. Test Event Creation**
+
+```bash
+curl -X POST "https://your-domain.com/api/calendar/events" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "YOUR_USER_ID",
+    "summary": "Test Meeting",
+    "description": "Testing n8n integration",
+    "startDateTime": "2024-01-15T10:00:00-07:00",
+    "endDateTime": "2024-01-15T11:00:00-07:00",
+    "timeZone": "America/Los_Angeles"
+  }'
+```
+
+### **4. Test Calendar Settings**
+
+```bash
+curl "https://your-domain.com/api/calendar/settings?userId=YOUR_USER_ID"
+```
+
+### **5. Test n8n Webhook**
+
+```bash
+curl -X POST "https://your-n8n-instance.com/webhook/create-event" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "userId": "YOUR_USER_ID",
+    "summary": "n8n Test Meeting",
+    "description": "Testing n8n webhook",
+    "startDateTime": "2024-01-15T14:00:00-07:00",
+    "endDateTime": "2024-01-15T15:00:00-07:00",
+    "timeZone": "America/Los_Angeles"
+  }'
 ```
 
 ## 🛠️ Error Handling
@@ -339,15 +486,19 @@ curl -X POST "https://your-domain.com/api/chat" \
 
 ### **Log Messages to Watch For:**
 
+- `🌍 [Chat API] Fetching timezone for user:`
+- `🌍 [Chat API] User's timezone:`
 - `🔑 [Token API] Getting access token...`
 - `✅ [Token API] Token refreshed successfully`
 - `📅 [Calendar Events API] Creating calendar event...`
 - `✅ [Calendar Events API] Event created successfully`
+- `🔧 [Calendar Settings API] Getting calendar settings...`
 
 ### **Error Messages:**
 
 - `❌ [Token API] No tokens found for user`
 - `❌ [Calendar Events API] User not connected to Google Calendar`
+- `⚠️ [Chat API] Could not fetch user timezone:`
 
 ## 🚀 Next Steps
 
@@ -355,84 +506,6 @@ curl -X POST "https://your-domain.com/api/chat" \
 2. **Test with your actual user ID** and domain
 3. **Implement error handling** in your workflows
 4. **Add additional features** like event updates, deletions, or recurring events
-
-## 🤖 AI Agent Integration
-
-### **User Timezone in Chat Messages**
-
-The user's timezone is now automatically included in every chat message sent to n8n, allowing your AI agent to provide timezone-aware responses:
-
-#### **Chat Message Format**
-
-When a user sends a message through the chat interface, the following data is sent to n8n:
-
-```json
-{
-  "app_source": "alan-ai-webapp",
-  "user_id": "user-firebase-id",
-  "chat_id": "chat-123",
-  "conversation_id": "conv_user-123_1703123456789",
-  "message": "Schedule a meeting for tomorrow at 2pm",
-  "timestamp": "1703123456789",
-  "message_id": "msg_1703123456789",
-  "user_timezone": "America/Sao_Paulo"
-}
-```
-
-#### **Using Timezone in AI Agent Workflows**
-
-Your AI agent can now access the user's timezone directly from the incoming message:
-
-1. **Webhook Trigger** - Chat Message
-
-   - Receives user message with timezone information
-
-2. **AI Processing Node**
-
-   - Use `{{$json.user_timezone}}` to access the user's timezone
-   - Provide timezone-aware responses and suggestions
-
-3. **Calendar Event Creation**
-   - Use the timezone when creating calendar events
-   - Ensure events are scheduled in the user's local time
-
-#### **Example: Timezone-Aware Meeting Scheduling**
-
-When a user says "Schedule a meeting for tomorrow at 2pm", your AI agent can:
-
-1. **Parse the request** using the user's timezone context
-2. **Convert times** to the correct timezone for Google Calendar
-3. **Create events** with proper timezone information
-4. **Provide responses** in the user's local time
-
-### **Using User Timezone with Calendar Events**
-
-When creating events through n8n workflows, you can now pass the user's timezone to your AI agent for better context:
-
-#### **Example: AI Agent Workflow**
-
-1. **Webhook Trigger** - Chat Message
-
-   - Receives user message with timezone information
-
-2. **AI Processing Node**
-
-   - Parse user request using `{{$json.user_timezone}}` for context
-   - Generate timezone-aware response
-
-3. **HTTP Request Node** - Create Event (if needed)
-
-   - Use timezone from `{{$json.user_timezone}}` for event creation
-
-4. **Response to User**
-   - Provide timezone-aware response in user's local time
-
-#### **Benefits for AI Agents:**
-
-- **Context Awareness**: AI can understand the user's actual timezone
-- **Better Scheduling**: AI can suggest times in the user's local timezone
-- **Accurate Responses**: AI can provide timezone-aware responses
-- **User Experience**: Events are created in the correct timezone automatically
 
 ## 📞 Support
 
