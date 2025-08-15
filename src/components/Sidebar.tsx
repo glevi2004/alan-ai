@@ -65,9 +65,9 @@ const items = [
     icon: Home,
   },
   {
-    title: "Search",
-    url: "#",
-    icon: Search,
+    title: "Connections",
+    url: "/connections",
+    icon: Inbox,
   },
 ];
 
