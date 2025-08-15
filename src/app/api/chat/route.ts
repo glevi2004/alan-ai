@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { GoogleCalendarService } from "@/lib/google/googleCalendarService";
 
 // Your n8n webhook URL - replace with your actual webhook URL
 const N8N_WEBHOOK_URL = process.env.N8N_WEBHOOK_URL!;
@@ -10,7 +11,23 @@ export async function POST(req: NextRequest) {
   const last = [...messages].filter((m: any) => m.role === "user").pop();
   if (!last) return new Response("No user message", { status: 400 });
 
-  // Create n8n message format with app identification
+  // Fetch user's timezone if userId is provided
+  let userTimeZone = null;
+  if (userId) {
+    try {
+      console.log("🌍 [Chat API] Fetching timezone for user:", userId);
+      const calendarSettings = await GoogleCalendarService.getCalendarSettings(
+        userId
+      );
+      userTimeZone = calendarSettings.timeZone;
+      console.log("🌍 [Chat API] User's timezone:", userTimeZone);
+    } catch (error) {
+      console.log("⚠️ [Chat API] Could not fetch user timezone:", error);
+      // Continue without timezone if there's an error
+    }
+  }
+
+  // Create n8n message format with app identification and timezone
   const n8nMessage = {
     app_source: "alan-ai-webapp",
     user_id: userId || "user-123",
@@ -19,6 +36,7 @@ export async function POST(req: NextRequest) {
     message: last.content,
     timestamp: Date.now().toString(),
     message_id: `msg_${Date.now()}`,
+    user_timezone: userTimeZone,
   };
 
   // Send the message to n8n

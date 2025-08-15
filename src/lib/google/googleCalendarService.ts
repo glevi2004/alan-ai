@@ -61,6 +61,56 @@ export class GoogleCalendarService {
     }
   }
 
+  static async getCalendarSettings(userId: string) {
+    try {
+      console.log(
+        "🔧 [GoogleCalendarService] Getting calendar settings for user:",
+        userId
+      );
+
+      // Get tokens from database
+      const tokens = await TokenService.getTokens(userId);
+
+      if (!tokens) {
+        throw new Error("User not connected to Google Calendar");
+      }
+
+      // Check if tokens are expired and refresh if needed
+      if (TokenService.isTokenExpired(tokens)) {
+        const newCredentials = await refreshAccessToken(tokens.refresh_token);
+        await TokenService.updateTokens(userId, {
+          access_token: newCredentials.access_token!,
+          expiry_date: newCredentials.expiry_date ?? undefined,
+        });
+        tokens.access_token = newCredentials.access_token!;
+        tokens.expiry_date = newCredentials.expiry_date ?? undefined;
+      }
+
+      const oauth2Client = this.getOAuth2Client(tokens.refresh_token);
+      const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+      // Get calendar settings
+      const response = await calendar.calendars.get({
+        calendarId: "primary",
+      });
+
+      const timeZone = response.data.timeZone;
+      console.log(
+        "🌍 [GoogleCalendarService] User's calendar timezone:",
+        timeZone
+      );
+
+      return {
+        timeZone,
+        summary: response.data.summary,
+        description: response.data.description,
+      };
+    } catch (error) {
+      console.error("Error fetching calendar settings:", error);
+      throw error;
+    }
+  }
+
   static async createEvent(userId: string, eventData: any) {
     console.log("📅 [GoogleCalendarService] Creating event for user:", userId);
     console.log(
@@ -105,6 +155,9 @@ export class GoogleCalendarService {
       const calendar = google.calendar({ version: "v3", auth: oauth2Client });
       console.log("✅ [GoogleCalendarService] Calendar client created");
 
+      // Note: Timezone is now fetched in the chat API and sent with the initial message
+      // No need to fetch it here for the response
+
       console.log(
         "📋 [GoogleCalendarService] Preparing event data for Google Calendar..."
       );
@@ -113,11 +166,13 @@ export class GoogleCalendarService {
         description: eventData.description,
         start: {
           dateTime: eventData.start.dateTime,
-          timeZone: eventData.start.timeZone || "",
+          ...(eventData.start.timeZone && {
+            timeZone: eventData.start.timeZone,
+          }),
         },
         end: {
           dateTime: eventData.end.dateTime,
-          timeZone: eventData.end.timeZone || "",
+          ...(eventData.end.timeZone && { timeZone: eventData.end.timeZone }),
         },
         attendees: eventData.attendees || [],
         reminders: {
@@ -152,6 +207,7 @@ export class GoogleCalendarService {
         response.data.htmlLink
       );
 
+      // Return response data
       return response.data;
     } catch (error) {
       console.error("Error creating calendar event:", error);
